@@ -500,8 +500,6 @@ AddEventHandler('esx_policejob:InsertIntoMDT', function(recipient, label, amount
 	local xPlayer = ESX.GetPlayerFromId(source)
 	local xPlayerName = xPlayer.getName()
 	local xPlayerIdentifier = xPlayer.getIdentifier()
-	print(source)
-	print(recipient)
 
 	if source == recipient then
 		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
@@ -528,6 +526,31 @@ AddEventHandler('esx_policejob:InsertIntoMDT', function(recipient, label, amount
 			['@fine'] = '$' .. amount
 		}, function (rowsChanged)
 			xPlayer.showNotification('Citation added to MDT for ~b~' .. yPlayerName)
+		end)
+	end
+end)
+
+RegisterServerEvent('esx_policejob:InsertParkingTicketIntoMDT')
+AddEventHandler('esx_policejob:InsertParkingTicketIntoMDT', function(recipient, label, amount)
+	local xPlayer = ESX.GetPlayerFromId(source)
+	local xPlayerName = xPlayer.getName()
+	local xPlayerIdentifier = xPlayer.getIdentifier()
+
+	if xPlayerIdentifier == recipient then
+		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
+			['@reason'] = label,
+			['@userid'] = xPlayer.identifier,
+			['@fine'] = '$' .. amount
+		}, function (rowsChanged)
+			xPlayer.showNotification('Parking ticket added to MDT for ~b~' .. xPlayerName)
+		end)
+	else
+		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
+			['@reason'] = label,
+			['@userid'] = recipient,
+			['@fine'] = '$' .. amount
+		}, function (rowsChanged)
+			xPlayer.showNotification('Parking ticket added to MDT')
 		end)
 	end
 end)
