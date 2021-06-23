@@ -494,3 +494,27 @@ AddEventHandler('onResourceStop', function(resource)
 		TriggerEvent('esx_phone:removeNumber', 'police')
 	end
 end)
+
+RegisterServerEvent('esx_policejob:InsertIntoMDT')
+AddEventHandler('esx_policejob:InsertIntoMDT', function(recipient, label, amount)
+	local xPlayer = ESX.GetPlayerFromId(source)
+
+	if not source == recipient then
+		local yPlayer = ESX.GetPlayerServerId(recipient)
+		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
+			['@reason'] = label,
+			['@userid'] = yPlayer.identifier,
+			['@fine'] = '$' .. amount
+		}, function (rowsChanged)
+			--Do Nothing
+		end)
+	else
+		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
+			['@reason'] = label,
+			['@userid'] = xPlayer.identifier,
+			['@fine'] = '$' .. amount
+		}, function (rowsChanged)
+			--Do Nothing
+		end)
+	end
+end)

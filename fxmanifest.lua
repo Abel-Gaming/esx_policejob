@@ -2,9 +2,9 @@ fx_version 'adamant'
 
 game 'gta5'
 
-description 'ESX Police Job'
+description 'ESX Police Job - Overhaul by Abel Gaming'
 
-version '1.3.0'
+version '1.0'
 
 server_scripts {
 	'@mysql-async/lib/MySQL.lua',

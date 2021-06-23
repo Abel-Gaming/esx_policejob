@@ -316,6 +316,7 @@ function OpenPoliceActionsMenu()
 				table.insert(elements, {label = _U('vehicle_info'), value = 'vehicle_infos'})
 				table.insert(elements, {label = _U('pick_lock'), value = 'hijack_vehicle'})
 				table.insert(elements, {label = _U('impound'), value = 'impound'})
+				table.insert(elements, {label = 'Parking Ticket', value = 'parking_ticket'})
 			end
 
 			table.insert(elements, {label = _U('search_database'), value = 'search_database'})
@@ -334,7 +335,9 @@ function OpenPoliceActionsMenu()
 				elseif DoesEntityExist(vehicle) then
 					if action == 'vehicle_infos' then
 						local vehicleData = ESX.Game.GetVehicleProperties(vehicle)
-						OpenVehicleInfosMenu(vehicleData)
+						local VehicleHash = ESX.Game.GetVehicleProperties(vehicle).model
+						local VehicleName = GetDisplayNameFromVehicleModel(VehicleHash)
+						OpenVehicleInfosMenu(vehicleData, VehicleName)
 					elseif action == 'hijack_vehicle' then
 						if IsAnyVehicleNearPoint(coords.x, coords.y, coords.z, 3.0) then
 							TaskStartScenarioInPlace(playerPed, 'WORLD_HUMAN_WELDING', 0, true)
@@ -376,6 +379,8 @@ function OpenPoliceActionsMenu()
 								end
 							end
 						end)
+					elseif action == 'parking_ticket' then
+						IssueParkingTicket()
 					end
 				else
 					ESX.ShowNotification(_U('no_vehicles_nearby'))
@@ -541,8 +546,14 @@ function OpenFineCategoryMenu(player, category)
 
 			if Config.EnablePlayerManagement then
 				TriggerServerEvent('esx_billing:sendBill', GetPlayerServerId(player), 'society_police', _U('fine_total', data.current.fineLabel), data.current.amount)
+				if Config.UseTgiannMDT then
+					TriggerServerEvent('esx_policejob:InsertIntoMDT', GetPlayerServerId(player), _U('fine_total', data.current.fineLabel), data.current.amount)
+				end
 			else
 				TriggerServerEvent('esx_billing:sendBill', GetPlayerServerId(player), '', _U('fine_total', data.current.fineLabel), data.current.amount)
+				if Config.UseTgiannMDT then
+					TriggerServerEvent('esx_policejob:InsertIntoMDT', GetPlayerServerId(player), _U('fine_total', data.current.fineLabel), data.current.amount)
+				end
 			end
 
 			ESX.SetTimeout(300, function()
@@ -643,13 +654,15 @@ function OpenUnpaidBillsMenu(player)
 	end, GetPlayerServerId(player))
 end
 
-function OpenVehicleInfosMenu(vehicleData)
+function OpenVehicleInfosMenu(vehicleData, VehicleName)
 	ESX.TriggerServerCallback('esx_policejob:getVehicleInfos', function(retrivedInfo)
 		local elements = {{label = _U('plate', retrivedInfo.plate)}}
 
 		if not retrivedInfo.owner then
+			table.insert(elements, {label = 'Model: '.. VehicleName})
 			table.insert(elements, {label = _U('owner_unknown')})
 		else
+			table.insert(elements, {label = 'Model: '.. VehicleName})
 			table.insert(elements, {label = _U('owner', retrivedInfo.owner)})
 		end
 
@@ -947,7 +960,6 @@ AddEventHandler('esx_phone:loaded', function(phoneNumber, contacts)
 	TriggerEvent('esx_phone:addSpecialContact', specialContact.name, specialContact.number, specialContact.base64Icon)
 end)
 
--- don't show dispatches if the player isn't in service
 AddEventHandler('esx_phone:cancelMessage', function(dispatchNumber)
 	if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' and ESX.PlayerData.job.name == dispatchNumber then
 		-- if esx_service is enabled
@@ -1565,12 +1577,49 @@ function StartHandcuffTimer()
 	end)
 end
 
--- TODO
---   - return to garage if owned
---   - message owner that his vehicle has been impounded
 function ImpoundVehicle(vehicle)
-	--local vehicleName = GetLabelText(GetDisplayNameFromVehicleModel(GetEntityModel(vehicle)))
-	ESX.Game.DeleteVehicle(vehicle)
-	ESX.ShowNotification(_U('impound_successful'))
-	currentTask.busy = false
+	local player = GetPlayerPed(-1)
+	local seizeCar = ESX.Game.GetClosestVehicle(GetEntityCoords(PlayerPedId()))
+	local vehProps = ESX.Game.GetVehicleProperties(seizeCar)
+	local fuel = GetVehicleFuelLevel(seizeCar)
+
+	if Config.UseT1gerGarage then
+		if seizeCar > 0 then
+			ESX.TriggerServerCallback('t1ger_garage:seizeVehicle',function(plateValid)
+				if plateValid then
+					DeleteVehicle(seizeCar)
+					ESX.ShowNotification('Vehicle has been impounded')
+				else
+					DeleteEntity(seizeCar)
+					ESX.ShowNotification('~r~[ERROR]~w~ Plate does not exist. ~n~~y~Deleting the vehicle instead.')
+				end
+			end, 'police', vehProps, fuel)
+		else
+			ESX.ShowNotification('~r~[ERROR]~w~ No nearby vehicle')
+		end
+	else
+		-- TO DO
+	end
+end
+
+function IssueParkingTicket()
+	local player = GetPlayerPed(-1)
+	local targetCar = ESX.Game.GetClosestVehicle(GetEntityCoords(PlayerPedId()))
+	local targetCarPlate = ESX.Game.GetVehicleProperties(targetCar).plate
+	
+	if targetCar > 0 then
+		ESX.TriggerServerCallback('esx_policejob:GetVehicleOwnerForParkingTicket', function(retrivedInfo)
+			local owner = retrivedInfo.owner
+			local ownerIdentifier = retrivedInfo.identifier
+			TriggerServerEvent('esx_billing:sendBillIdentifier', ownerIdentifier, 'society_police', 'Parking Ticket', 100)
+			if Config.UseTgiannMDT then
+				TriggerServerEvent('esx_policejob:InsertIntoMDT', ownerIdentifier, 'Parking Ticket', 100)
+			end
+			print('Issued parking ticket to ' .. owner .. ' (' .. ownerIdentifier .. ') for the vehicle plate ' .. targetCarPlate)
+			ESX.ShowNotification('Issued parking ticket to ~b~' .. owner .. ' ~w~for the vehicle plate ~y~' .. targetCarPlate)
+		end, targetCarPlate)
+
+	else
+		ESX.ShowNotification('~r~[ERROR]~w~ No nearby vehicle')
+	end
 end
