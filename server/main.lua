@@ -498,23 +498,36 @@ end)
 RegisterServerEvent('esx_policejob:InsertIntoMDT')
 AddEventHandler('esx_policejob:InsertIntoMDT', function(recipient, label, amount)
 	local xPlayer = ESX.GetPlayerFromId(source)
+	local xPlayerName = xPlayer.getName()
+	local xPlayerIdentifier = xPlayer.getIdentifier()
+	print(source)
+	print(recipient)
 
-	if not source == recipient then
-		local yPlayer = ESX.GetPlayerServerId(recipient)
-		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
-			['@reason'] = label,
-			['@userid'] = yPlayer.identifier,
-			['@fine'] = '$' .. amount
-		}, function (rowsChanged)
-			--Do Nothing
-		end)
-	else
+	if source == recipient then
 		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
 			['@reason'] = label,
 			['@userid'] = xPlayer.identifier,
 			['@fine'] = '$' .. amount
 		}, function (rowsChanged)
-			--Do Nothing
+			xPlayer.showNotification('Citation added to MDT for ~b~' .. xPlayerName)
+		end)
+	elseif xPlayerIdentifier == recipient then
+		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
+			['@reason'] = label,
+			['@userid'] = xPlayer.identifier,
+			['@fine'] = '$' .. amount
+		}, function (rowsChanged)
+			xPlayer.showNotification('Citation added to MDT for ~b~' .. xPlayerName)
+		end)
+	else
+		local yPlayer = ESX.GetPlayerFromId(recipient)
+		local yPlayerName = yPlayer.getName()
+		MySQL.Async.execute('INSERT INTO tgiann_mdt_records (reason, user_id, fine) VALUES (@reason, @userid, @fine)', {
+			['@reason'] = label,
+			['@userid'] = yPlayer.identifier,
+			['@fine'] = '$' .. amount
+		}, function (rowsChanged)
+			xPlayer.showNotification('Citation added to MDT for ~b~' .. yPlayerName)
 		end)
 	end
 end)
