@@ -1,5 +1,10 @@
 # esx_policejob
 
+## Fork Information
+This fork has added more items to the job such as finished impound function using T1ger garage, added parking tickets, updated vehicle info menu, and added the ability for fines to automatically be added to Tgiann MDT if you are using it. I have also added two new config options at the top of the configuration file.
+
+----------------------------------------------------------------------------------------------
+
 This resource for ESX adds police armories, vehicle garages and ability for cops to search, handcuff people and much more.
 
 ### Requirements
