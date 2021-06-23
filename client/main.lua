@@ -1613,7 +1613,7 @@ function IssueParkingTicket()
 			local ownerIdentifier = retrivedInfo.identifier
 			TriggerServerEvent('esx_billing:sendBillIdentifier', ownerIdentifier, 'society_police', 'Parking Ticket', 100)
 			if Config.UseTgiannMDT then
-				TriggerServerEvent('esx_policejob:InsertIntoMDT', ownerIdentifier, 'Parking Ticket', 100)
+				TriggerServerEvent('esx_policejob:InsertParkingTicketIntoMDT', ownerIdentifier, 'Parking Ticket', 100)
 			end
 			print('Issued parking ticket to ' .. owner .. ' (' .. ownerIdentifier .. ') for the vehicle plate ' .. targetCarPlate)
 			ESX.ShowNotification('Issued parking ticket to ~b~' .. owner .. ' ~w~for the vehicle plate ~y~' .. targetCarPlate)
